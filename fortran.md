@@ -1,5 +1,9 @@
 # Fortran相关记录
 
+作者：通配符
+
+Email：tongpeifu.yh@gmail.com
+
 ## Fortran与C混合编程
 
 Fortran与C混合编程时一般对Fortran代码进行修改以适配C语言ABI，因为Fortran的ABI各家编译器并不统一（比如Compaq、英特尔的编译器会把函数名转为大写，gfortran则会使用小写并后缀下划线）。从Fortran 2003以后，Fortran标准引入了用于和C语言混合编程的`BIND(C)`以及内置模块`ISO_C_BINDING`，让Fortran兼容C语言ABI，使混合编程方法更加统一。然而，不是所有的特性都可以用于混合编程，比如C语言的可变参数、unsigned类型等。
