@@ -350,3 +350,57 @@ print *, string1(1:s_len)
 
 使用`TYPE(C_FUNPTR), VALUE`声明，然后定义Fortran的函数指针`proc`，最后调用`C_F_PROCPOINTER`把C函数指针转换为Fortran的函数指针。
 
+
+
+## Fortran传递数组参数
+
+似乎没有任何教程明确指出Fortran传递数组参数的多种方式，除了IBM的XL Fortran Language Reference。在[这里](https://www.cenapad.unicamp.br/parque/manuais/Xlf/lr38.HTM#HDRARRAYS)可以查看关于此的信息。
+
+这里给出几个实例。
+
+```fortran
+    program testfortran20240820
+
+    implicit none
+
+    ! Variables
+    integer(kind=4) ::a=5,b=6,c
+	integer,dimension(4,5) ::arr
+    ! Body of testfortran20240820
+	arr=3
+	call sub1(arr)
+	call sub2(arr,size(arr))
+	call sub3(arr)
+	contains
+		! Assumed-Shape Arrays
+		! 只需要指定形参的维度（多少个冒号），每个维度的长度Fortran自动通过实参确定
+		! 还可以指定某一维度的lower bound，会根据长度自动确定upper bound
+		! 默认lower bound是1
+		! 使用这种声明方式必须要有接口定义，可以是interface，也可以是module内函数，或者过程内函数
+	    subroutine sub1(a)
+		    implicit none
+			integer,dimension(:,:) ::a
+			print *,shape(a)
+		end subroutine sub1
+		! Explicit-Shape Arrays
+		! 显式通过传递的参数确定数组的维度、长度。
+		! 该方式还可以在子过程内定义新的局部数组（一般情况下是不允许使用变量作为数组长度的）。
+		subroutine sub2(a,length)
+		    implicit none
+			integer length
+			integer,dimension(length) ::a
+			print *,shape(a)
+		end subroutine sub2
+		! Assumed-Size Arrays
+		! 使用`*`声明数组维度，Fortran将不传递任何数组维度信息
+		! 因此不能整体操作数组，也不能使用`size()`或者`shape()`计算维度信息！
+		! 以下子程序将编译错误
+		subroutine sub3(a)
+		    implicit none
+			integer length
+			integer,dimension(*) ::a
+			print *,size(a) !在此处产生错误
+		end subroutine sub3
+    end program testfortran20240820
+```
+
