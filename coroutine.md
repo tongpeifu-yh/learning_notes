@@ -140,6 +140,8 @@ int main()
 
 这里的`promise_type`只使用了`std::suspend_always`，表示只会被手动恢复，不会自动开始。在`gen.next()`执行时，会调用`coro.resume();`恢复协程，然后协程执行遇到`co_yield value`，转换为`co_await promise.yield_value(value)`，首先把值传递到`promise_type`的内部成员`value`，然后再次挂起，最后返回`coro.promise().value`，即刚刚`co_yield value`的值。
 
+最后是`co_return`。协程函数可以不返回值，即无显式的`co_return`或者直接`co_return;`，这样会自动调用promise的`return_void()`函数。也可以选择返回一个值，这样会调用`return_value(value)`函数（因此要求`promise_type`的`return_value(T v)`方法有定义）。一般也是在`return_value()`函数中把值保存起来，以后使用。
+
 # Boost.Coroutines2
 
 Boost.Coroutines2基本只是一个生产者消费者模型。`boost::coroutines2::coroutine<type>`为基本的类，`type`为生产或者消费的值的类型。通过`boost::coroutines2::coroutine<type>::pull_type`或者`boost::coroutines2::coroutine<type>::push_type`构造一个协程，`pull_type/push_type`的构造函数接收一个函数对象（即协程函数），该函数对象接收参数`push_type&/pull_type&`。区别在于`pull_type`会立即执行协程，`push_type`需要手动恢复执行。
