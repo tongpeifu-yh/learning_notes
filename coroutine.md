@@ -53,7 +53,7 @@ struct AwaitableTask {
 - **异常处理**：通过 `unhandled_exception()` 终止程序以避免未处理异常。
 - **协程实例生成**：通过 `get_return_object()` 创建协程的返回对象。
 
-也就是说，当调用协程函数，首先通过 `get_return_object()` 创建协程的返回对象`Task`，然后根据`initial_suspend()`的返回值确定是否立即执行协程（本质上是执行`co_await promise.initial_suspend()`）。`initial_suspend()`返回值可以是`std::suspend_never`或者`std::suspend_always`，前者表示总是不挂起（即立即执行后续代码），后者表示总是挂起。这里使用`std::suspend_never`，表示协程立即执行，这是比较简单的做法。如果选用了`std::suspend_always`，那么需要手动获取协程句柄，然后手动执行`handle.resume()`启动协程。
+也就是说，当调用协程函数，首先创建协程句柄（包含`promise_type`的对象promise），然后通过 `get_return_object()` 创建协程的返回对象`Task`，然后根据`initial_suspend()`的返回值确定是否立即执行协程（本质上是执行`co_await promise.initial_suspend()`）。`initial_suspend()`返回值可以是`std::suspend_never`或者`std::suspend_always`，前者表示总是不挂起（即立即执行后续代码），后者表示总是挂起。这里使用`std::suspend_never`，表示协程立即执行，这是比较简单的做法。如果选用了`std::suspend_always`，那么需要手动获取协程句柄，然后手动执行`handle.resume()`启动协程。
 
 如果不立即执行，一般需要在`promise_type`的`get_return_object()`函数中获取协程句柄，因为该函数位于`promise_type`内部，可以通过`std::coroutine_handle<promise_type>::from_promise(*this)`获得协程句柄。然后，把该句柄保存在别的什么地方，例如新构造的`Task`类里面（比如成员变量）。然后，在有需要时取用。例如，
 
@@ -138,9 +138,11 @@ int main()
 }
 ```
 
-这里的`promise_type`只使用了`std::suspend_always`，表示只会被手动恢复，不会自动开始。在`gen.next()`执行时，会调用`coro.resume();`恢复协程，然后协程执行遇到`co_yield value`，转换为`co_await promise.yield_value(value)`，首先把值传递到`promise_type`的内部成员`value`，然后再次挂起，最后返回`coro.promise().value`，即刚刚`co_yield value`的值。
+这里的`promise_type`只使用了`std::suspend_always`，表示只会被手动恢复，不会自动开始。在`gen.next()`执行时，会调用`coro.resume();`恢复协程，然后协程执行遇到`co_yield value`，转换为`co_await promise.yield_value(value)`，首先把值传递到`promise_type`的内部成员`value`，然后再次挂起（挂起后`coro.resume()`函数退出），最后返回`coro.promise().value`，即刚刚`co_yield value`的值。
 
 最后是`co_return`。协程函数可以不返回值，即无显式的`co_return`或者直接`co_return;`，这样会自动调用promise的`return_void()`函数。也可以选择返回一个值，这样会调用`return_value(value)`函数（因此要求`promise_type`的`return_value(T v)`方法有定义）。一般也是在`return_value()`函数中把值保存起来，以后使用。
+
+协程返回后，程序触发`promise_type`的`final_suspend()`方法，相当于`co_await promise.final_suspend()`。这里决定协程是否还要挂起还是直接彻底结束。
 
 # Boost.Coroutines2
 
