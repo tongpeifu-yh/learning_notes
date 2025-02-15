@@ -144,6 +144,12 @@ int main()
 
 协程返回后，程序触发`promise_type`的`final_suspend()`方法，相当于`co_await promise.final_suspend()`。这里决定协程是否还要挂起还是直接彻底结束。
 
+最后是协程的执行状态判断。有两个方法可以判断协程句柄的状态：`operator bool()`和`done()`，一般需要组合使用。其中，`operator bool()`表示协程句柄是否已经销毁，`done()`表示是否已经执行完用户代码。
+
+- 协程用户代码仍然在执行（未`co_return`），`operator bool()`返回`true`，`done()`返回`false`。
+- 协程用户代码已经结束，但在`final_suspend()`被挂起，`operator bool()`返回`true`，`done()`返回`true`。此时必须通过`destroy()`方法销毁协程句柄。
+- 协程用户代码已经结束，在`final_suspend()`没有挂起，那么协程已经销毁，`operator bool()`返回`false`，不能调用`done()`。
+
 # Boost.Coroutines2
 
 Boost.Coroutines2基本只是一个生产者消费者模型。`boost::coroutines2::coroutine<type>`为基本的类，`type`为生产或者消费的值的类型。通过`boost::coroutines2::coroutine<type>::pull_type`或者`boost::coroutines2::coroutine<type>::push_type`构造一个协程，`pull_type/push_type`的构造函数接收一个函数对象（即协程函数），该函数对象接收参数`push_type&/pull_type&`。区别在于`pull_type`会立即执行协程，`push_type`需要手动恢复执行。
