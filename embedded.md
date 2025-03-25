@@ -266,6 +266,10 @@
 
 模块说明书使用了一个名词”有效载荷（Payload）“来指代承担发射与接收任务的一系列硬件资源。
 
+### Enhanced ShockBurst™
+
+Enhanced ShockBurst™
+
 ### Enhanced ShockBurst™发射有效载荷
 
 1. 配置CONFIG寄存器的PRIM_RX位为0。
